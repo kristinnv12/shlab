@@ -50,6 +50,8 @@ int verbose = 0;            /* if true, print additional output */
 int nextjid = 1;            /* next job ID to allocate */
 char sbuf[MAXLINE];         /* for composing sprintf messages */
 
+//TODO: add rest of built in commands
+
 struct job_t {              /* The job struct */
     pid_t pid;              /* job PID */
     int jid;                /* job ID [1, 2, ...] */
@@ -64,7 +66,7 @@ struct job_t jobs[MAXJOBS]; /* The job list */
 
 /* Here are the functions that you will implement */
 void eval(char *cmdline);
-int builtin_cmd(char **argv);
+int builtin_cmd(char *argv);
 void do_bgfg(char **argv);
 void waitfg(pid_t pid);
 
@@ -172,8 +174,9 @@ int main(int argc, char **argv)
  * background children don't receive SIGINT (SIGTSTP) from the kernel
  * when we type ctrl-c (ctrl-z) at the keyboard.  
  */
-void eval(char *cmdline) 
-{
+void eval(char *cmdline){
+
+    builtin_cmd(cmdline);
     return;
 }
 
@@ -241,8 +244,13 @@ int parseline(const char *cmdline, char **argv)
  * builtin_cmd - If the user has typed a built-in command then execute
  *    it immediately.  
  */
-int builtin_cmd(char **argv) 
+int builtin_cmd(char *argv) 
 {
+    if(strcmp(argv, "quit\n") == 0)  //check for built in cmd quit
+    {
+        exit(0);
+    }
+
     return 0;     /* not a builtin command */
 }
 
