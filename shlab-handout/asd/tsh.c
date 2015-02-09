@@ -186,7 +186,6 @@ void eval(char *cmdline)
 
 	int bg;
 	char* argv[MAXARGS];
-	pid_t pid;
 
 	bg = parseline(cmdline, argv); // Parseline returns if we have bg(1) or fg(0)
 
@@ -199,21 +198,7 @@ void eval(char *cmdline)
 
 	if(!builtin_cmd(argv))
 	{
-		// 
-		if((pid = fork()) == 0) {
-
-
-		// Now we execute a new program
-		if(execve(argv[0], argv, environ) < 0) 
-		{
-			// Our command doesn't exist
-			printf("%s: Command not found\n", argv[0]);
-			return;
-		}}
-
-		if(bg) {
-			printf("%d %s\n",pid, cmdline);
-		}
+		//TODO: Do some shit
 	}
 
 	return;
@@ -297,7 +282,6 @@ int builtin_cmd(char **argv)
 	// Quit needes to check if we have some jobs in the background
 	if(!strcmp(argv[0], "quit"))  //check for built in cmd quit
 	{
-		//kill(jobs.pid, SIGKILL);
 		exit(0);
 	}
 	else if(!strcmp(argv[0], "jobs\n")) // lists all background jobs
@@ -307,7 +291,7 @@ int builtin_cmd(char **argv)
 	}
 	else if(!strcmp(argv[0], "fg") || !strcmp(argv[0], "bg") )
 	{
-		do_bgfg(argv);
+		printf("asdasdas\n");
 		return 1;
 	}
 
