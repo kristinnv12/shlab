@@ -8,7 +8,7 @@
  * User 1: kristinnv12
  * SSN: 0208923829
  * User 2: ragnarp12 
- * SSN: X
+ * SSN: 2801872169
  * === End User Information ===
  */
 #include <stdio.h>
@@ -66,7 +66,7 @@ struct job_t jobs[MAXJOBS]; /* The job list */
 
 /* Here are the functions that you will implement */
 void eval(char *cmdline);
-int builtin_cmd(char *argv);
+int builtin_cmd(char **argv);
 void do_bgfg(char **argv);
 void waitfg(pid_t pid);
 
@@ -176,7 +176,23 @@ int main(int argc, char **argv)
  */
 void eval(char *cmdline){
 
-    builtin_cmd(cmdline);
+    int bg;
+    char* argv[MAXARGS];
+
+    bg = parseline(cmdline, argv); // Parseline returns if we have bg(1) or fg(0)
+
+
+    // Some basecase, empty argument line
+    if(argv[0] == NULL)
+    {
+        return;
+    }
+
+    if(!builtin_cmd(argv))
+    {
+        //TODO: Do some shit
+    }
+
     return;
 }
 
@@ -244,11 +260,22 @@ int parseline(const char *cmdline, char **argv)
  * builtin_cmd - If the user has typed a built-in command then execute
  *    it immediately.  
  */
-int builtin_cmd(char *argv) 
+int builtin_cmd(char **argv) 
 {
-    if(strcmp(argv, "quit\n") == 0)  //check for built in cmd quit
+    // Quit needes to check if we have some jobs in the background
+    if(!strcmp(argv[0], "quit"))  //check for built in cmd quit
     {
         exit(0);
+    }
+    else if(!strcmp(argv[0], "jobs\n")) // lists all background jobs
+    {
+        listjobs(jobs);
+        return 1;
+    }
+    else if(!strcmp(argv[0], "fg") || !strcmp(argv[0], "bg") )
+    {
+        printf("asdasdas\n");
+        return 1;
     }
 
     return 0;     /* not a builtin command */
@@ -283,6 +310,7 @@ void waitfg(pid_t pid)
  */
 void sigchld_handler(int sig) 
 {
+
     return;
 }
 
@@ -293,6 +321,9 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
+    // Stop the shell instantly
+    // Just a simple mechanism
+    exit(0); 
     return;
 }
 
