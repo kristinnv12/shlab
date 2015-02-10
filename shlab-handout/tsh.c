@@ -207,33 +207,42 @@ void eval(char *cmdline)
 		// Now to prevent the sigchld handler to deletejob
 		// before addjob we block it using sigprocmask.
 		sigemptyset(&mask); // Initialize a empty set
-		sigaddset(&mask, SIGCHLD);
+		sigaddset(&mask, SIGCHLD); // Add SIGCHLD to the set
+
+		// We add SIGCHILD to our blocking list. By this we can
+		// be sure our job won't be deleted from the job list
+		// until it has ended, causing possible error.
 		sigprocmask(SIG_BLOCK, &mask, NULL);
 
 
 		// Now here we fork our process to run the program.
 		if ((pid = fork()) == 0)
 		{
-			// Change process group to our own
+			// http://www.gnu.org/software/libc/manual/html_node/Launching-Jobs.html
+			// Change process group to its own process group
 			setpgid(0, 0);
 
-
+			// We can now allow the job to be deleted from the list
+			// so we deleted SIGCHLD from the set.
 			sigprocmask(SIG_UNBLOCK, &mask, NULL);
-			// Now we execute a new program. Execve returns -1 if error otherwise 
+
+			// Now we execute a new program. Execve returns -1 if error otherwise
 			// no return.
 			if (execve(argv[0], argv, environ) < 0)
 			{
 				// Our command doesn't exist, display it
 				printf("%s: Command not found\n", argv[0]);
+
+				// We close shell process since our forked process
+				// isn't the right command
 				exit(0);
 			}
+
 		}
 
 		if (bg)
 		{
-			// We are bad parents and we dont wait for the child to finish its meal
-			// printf("%d %s\n",pid, cmdline);
-			//addjob(struct job_t *jobs, pid_t pid, int state, char *cmdline)
+			// Add the process to a job list. 
 			if (addjob(jobs, pid, BG, cmdline))
 			{
 				sigprocmask(SIG_UNBLOCK, &mask, NULL);
@@ -243,8 +252,7 @@ void eval(char *cmdline)
 		}
 		else
 		{
-			// In foreground we wait for the child to finish its meal
-			//printf("We run in foreground\n");
+
 			if (addjob(jobs, pid, FG, cmdline))
 			{
 				sigprocmask(SIG_UNBLOCK, &mask, NULL);
