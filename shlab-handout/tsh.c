@@ -215,8 +215,16 @@ void eval(char *cmdline)
 		sigprocmask(SIG_BLOCK, &mask, NULL);
 
 
-		// Now here we fork our process to run the program.
-		if ((pid = fork()) == 0)
+		pid = fork();
+
+		// fork() gives -1 if error occur
+		if (pid < 0)
+		{
+			printf("Error forking child process\n");
+			exit(0);
+		}
+		// Now here we have forked our process to run the program.
+		else if (pid == 0)
 		{
 			// http://www.gnu.org/software/libc/manual/html_node/Launching-Jobs.html
 			// Change process group to its own process group
@@ -242,7 +250,7 @@ void eval(char *cmdline)
 
 		if (bg)
 		{
-			// Add the process to a job list. 
+			// Add the process to a job list.
 			if (addjob(jobs, pid, BG, cmdline))
 			{
 				sigprocmask(SIG_UNBLOCK, &mask, NULL);
@@ -340,12 +348,12 @@ int parseline(const char *cmdline, char **argv)
 int builtin_cmd(char **argv)
 {
 	// Quit needes to check if we have some jobs in the background
-	if (!strcmp(argv[0], "quit")) //check for built in cmd quit
+	if (!strcmp(argv[0], "quit")) 		//check for built in cmd quit
 	{
 		//kill(jobs.pid, SIGKILL);
 		exit(0);
 	}
-	else if (!strcmp(argv[0], "jobs")) // lists all background jobs
+	else if (!strcmp(argv[0], "jobs"))	// lists all background jobs
 	{
 		listjobs(jobs);
 		return 1;
@@ -364,6 +372,17 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv)
 {
+	if(!strcmp(argv[0], "fg"))
+	{
+		// TODO: program around FG
+		printf("Got fg\n");
+	}
+	else
+	{
+		// TODO: program around BG
+		printf("Got bg\n");
+	}
+
 	return;
 }
 
@@ -414,9 +433,24 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig)
 {
-	// Stop the shell instantly
-	// Just a simple mechanism
-	exit(0);
+	int pid;
+	int jobid;
+
+	pid = fgpid(jobs); 		// Get foreground pid
+	jobid = pid2jid(pid);	// Get job id based on pid
+
+	// fgpid() returns 0 if we have no foreground job
+	// so this won't run if we get 0.
+	if (pid != 0)
+	{
+		// Kill pid and its group process using SIGINT.
+		// kill() returns 0 if it successes
+		if (kill(-pid, SIGINT) == 0)
+		{
+			printf("Job [%d] (%d) terminated by signal %d\n", jobid, pid, SIGINT);
+		}
+	}
+
 	return;
 }
 
@@ -427,6 +461,11 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig)
 {
+
+	// Get pid of current running foreground job
+	//  int pid = fgpid(jobs);
+
+
 	return;
 }
 
