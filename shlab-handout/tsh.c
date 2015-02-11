@@ -348,12 +348,12 @@ int parseline(const char *cmdline, char **argv)
 int builtin_cmd(char **argv)
 {
 	// Quit needes to check if we have some jobs in the background
-	if (!strcmp(argv[0], "quit")) 		//check for built in cmd quit
+	if (!strcmp(argv[0], "quit"))       //check for built in cmd quit
 	{
 		//kill(jobs.pid, SIGKILL);
 		exit(0);
 	}
-	else if (!strcmp(argv[0], "jobs"))	// lists all background jobs
+	else if (!strcmp(argv[0], "jobs"))  // lists all background jobs
 	{
 		listjobs(jobs);
 		return 1;
@@ -372,7 +372,7 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv)
 {
-	if(!strcmp(argv[0], "fg"))
+	if (!strcmp(argv[0], "fg"))
 	{
 		// TODO: program around FG
 		printf("Got fg\n");
@@ -436,8 +436,8 @@ void sigint_handler(int sig)
 	int pid;
 	int jobid;
 
-	pid = fgpid(jobs); 		// Get foreground pid
-	jobid = pid2jid(pid);	// Get job id based on pid
+	pid = fgpid(jobs);      // Get foreground pid
+	jobid = pid2jid(pid);   // Get job id based on pid
 
 	// fgpid() returns 0 if we have no foreground job
 	// so this won't run if we get 0.
@@ -462,8 +462,19 @@ void sigint_handler(int sig)
 void sigtstp_handler(int sig)
 {
 
-	// Get pid of current running foreground job
-	//  int pid = fgpid(jobs);
+	int pid;
+	int jobid;
+
+	pid = fgpid(jobs);      // Get foreground pid
+	jobid = pid2jid(pid);   // Get job id based on pid
+
+	if (pid != 0)
+	{
+		if (kill(-pid, SIGTSTP))
+		{
+			printf("Job [%d] (%d) stopped by signal %d", jobid, pid, SIGTSTP);
+		}
+	}
 
 
 	return;
