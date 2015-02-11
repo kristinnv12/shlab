@@ -255,6 +255,7 @@ void eval(char *cmdline)
 			{
 				sigprocmask(SIG_UNBLOCK, &mask, NULL);
 				printf("[%d] %d %s", pid2jid(pid), pid, cmdline);
+				fflush(stdout);
 			}
 			//printf("We run in background\n");
 		}
@@ -356,6 +357,7 @@ int builtin_cmd(char **argv)
 	else if (!strcmp(argv[0], "jobs"))  // lists all background jobs
 	{
 		listjobs(jobs);
+
 		return 1;
 	}
 	else if (!strcmp(argv[0], "fg") || !strcmp(argv[0], "bg") )
@@ -372,10 +374,29 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv)
 {
+
+	// * Athuga fyrst hvort um fg eða bg er að ræða
+	// * Athuga hvort þetta sé jid eða pid. JID er með % á undan tölunni
+	// *
+	//
+	int pid;
+
 	if (!strcmp(argv[0], "fg"))
 	{
 		// TODO: program around FG
 		printf("Got fg\n");
+
+		// Check if our arg after fg starts with %
+		// then we get pid by jid
+		/*if (!strcmp(argv[1][0], "%%"))
+		{
+		    /getjobpid  - Find a job (by PID) on the job list
+		    //struct job_t *getjobpid(struct job_t *jobs, pid_t pid)
+		    // struct job_t *getjobjid(struct job_t *jobs, int jid)
+		    //char *this_jid = strchr(*argv, "%%");
+		    //pid = getjobjid(jobs, this_jid);
+		    //printf("%d", this_jid);
+		}*/
 	}
 	else
 	{
@@ -417,10 +438,12 @@ void waitfg(pid_t pid)
 void sigchld_handler(int sig)
 {
 	pid_t pid;
+	int status;
 
-	while ((pid = waitpid(-1, NULL, 0)) > 0)
+
+	while ((pid = waitpid(-1, &status, WUNTRACED | WNOHANG)) > 0)
 	{
-		deletejob(jobs, pid);
+			deletejob(jobs, pid);
 	}
 
 	return;
