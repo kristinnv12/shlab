@@ -379,7 +379,47 @@ void do_bgfg(char **argv)
 	// * Athuga hvort þetta sé jid eða pid. JID er með % á undan tölunni
 	// *
 	//
-	int pid;
+	//int pid;
+	int jid, pid;
+
+	char *endptr;
+	struct job_t *job;
+
+	// Lets do nothing if argument after fg/bg is none
+	if (argv[1] == NULL)
+	{
+		return;
+	}
+
+	// Check if user entered pid
+	if (argv[1][0] != '%')
+	{
+		pid = strtol(argv[1], &endptr, 10);
+		jid = pid2jid(pid);
+
+		if (jid == 0)
+		{
+			printf("(%d): No such process\n", pid);
+			return;
+		}
+
+	}
+	// otherwise the user has entered jid
+	else
+	{
+		// %333: No such job
+		// // fg: argument must be a PID or %jobid
+		// We add ++argv[1] to go right after %
+		jid = strtol(++argv[1], &endptr, 10);
+		job = getjobjid(jobs, jid);
+
+	}
+
+	if ((job = getjobjid(jobs, jid)) == NULL)
+	{
+		printf("%%%d: No such job\n", jid);
+		return;
+	}
 
 	if (!strcmp(argv[0], "fg"))
 	{
@@ -439,11 +479,52 @@ void sigchld_handler(int sig)
 {
 	pid_t pid;
 	int status;
+	struct job_t *jobid;
+	/* bls 725 og bls 727-728
+	. WIFEXITED(status): Returns true if the child terminated normally, via a
+	    call to exit or a return. <- Láta athuga
+
+	. WEXITSTATUS(status): Returns the exit status of a normally terminated
+	    child. This status is only deﬁned if WIFEXITED returned true. <- ekki nauðsynlegt
+
+	. WIFSIGNALED(status): Returns true if the child process terminated be-
+	    cause of a signal that was not caught. (Signals are explained in Section 8.5.) <- spurning með að Láta athuga
+
+	. WTERMSIG(status):Returns the number of the signal that caused the child
+	    process to terminate. This status is only deﬁned ifWIFSIGNALED(status)
+	    returned true. <- ekki athuga
+
+	. WIFSTOPPED(status): Returns true if the child that caused the return is
+	    currently stopped. <- Láta athuga
+
+	. WSTOPSIG(status): Returns the number of the signal that caused the child
+	    to stop. This status is only deﬁned if WIFSTOPPED(status) returned true. <- ekki athuga
+	 */
 
 
 	while ((pid = waitpid(-1, &status, WUNTRACED | WNOHANG)) > 0)
 	{
+		jobid = getjobpid(jobs, pid);
+
+		if (WIFSIGNALED(status))
+		{
+			printf("Got WIFSIGNALED\n");
+			fflush(stdout);
 			deletejob(jobs, pid);
+		}
+		else if (WIFSTOPPED(status))
+		{
+			jobid->state = ST;
+			printf("Job [%d] (%d) stopped by signal %d", jobid->jid, pid, WSTOPSIG(status));
+			fflush(stdout);
+		}
+		// Just a normal exit so we just delete the job
+		else
+		{
+			printf("Got else\n");
+			fflush(stdout);
+			deletejob(jobs, pid);
+		}
 	}
 
 	return;
