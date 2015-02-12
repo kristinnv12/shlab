@@ -425,6 +425,7 @@ void do_bgfg(char **argv)
 
 	if (state == ST || state == BG)
 	{
+		kill(-(job->pid), SIGCONT);
 		if (!strcmp(argv[0], "fg"))
 		{
 			job->state = FG;
@@ -435,7 +436,6 @@ void do_bgfg(char **argv)
 			job->state = BG;
 			printf("[%d] (%d) %s\n", job->jid, job->pid, job->cmdline);
 		}
-		kill(-(job->pid), SIGCONT);
 	}
 
 	/*if (!strcmp(argv[0], "fg"))
@@ -530,15 +530,15 @@ void sigchld_handler(int sig)
 		else if (WIFSTOPPED(status))
 		{
 			jobid->state = ST;
+			//kill(jobid->pid, SIGTSTP);
 			printf("Job [%d] (%d) stopped by signal %d\n", jobid->jid, pid, WSTOPSIG(status));
-			kill(-pid, SIGTSTP);
 			fflush(stdout);
 		}
 		// Just a normal exit so we just delete the job
 		else
 		{
-			printf("Got else\n");
-			fflush(stdout);
+			//printf("Got else\n");
+			//fflush(stdout);
 			deletejob(jobs, pid);
 		}
 	}
@@ -583,19 +583,15 @@ void sigtstp_handler(int sig)
 {
 
 	int pid;
-	int jobid;
+	//int jobid;
 
 	pid = fgpid(jobs);      // Get foreground pid
-	jobid = pid2jid(pid);   // Get job id based on pid
+	//jobid = pid2jid(pid);   // Get job id based on pid
 
 	if (pid != 0)
 	{
-		if (kill(-pid, SIGTSTP))
-		{
-			printf("Job [%d] (%d) stopped by signal %d", jobid, pid, SIGTSTP);
-		}
+		kill(-pid, SIGTSTP);
 	}
-
 
 	return;
 }
