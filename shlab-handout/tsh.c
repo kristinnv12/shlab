@@ -420,30 +420,42 @@ void do_bgfg(char **argv)
 		printf("%%%d: No such job\n", jid);
 		return;
 	}
+	// Save state here so we do the forbidden DRY
+	int state = job->state;
 
-	if (!strcmp(argv[0], "fg"))
+	if (state == ST || state == BG)
 	{
-		// TODO: program around FG
-		printf("Got fg\n");
-
-		// Check if our arg after fg starts with %
-		// then we get pid by jid
-		/*if (!strcmp(argv[1][0], "%%"))
+		if (!strcmp(argv[0], "fg"))
 		{
-		    /getjobpid  - Find a job (by PID) on the job list
-		    //struct job_t *getjobpid(struct job_t *jobs, pid_t pid)
-		    // struct job_t *getjobjid(struct job_t *jobs, int jid)
-		    //char *this_jid = strchr(*argv, "%%");
-		    //pid = getjobjid(jobs, this_jid);
-		    //printf("%d", this_jid);
-		}*/
-	}
-	else
-	{
-		// TODO: program around BG
-		printf("Got bg\n");
+			job->state = FG;
+			waitfg(job->pid);
+		}
+		else
+		{
+			job->state = BG;
+			printf("[%d] (%d) %s\n", job->jid, job->pid, job->cmdline);
+		}
+		kill(-(job->pid), SIGCONT);
 	}
 
+	/*if (!strcmp(argv[0], "fg"))
+	{
+	    // No the user has types fg and we put FG to the state of
+	    // the job. This must be done if the process is in background
+	    // or is stopped
+
+	    if(state == ST || state == BG)
+	    {
+
+	        job->state = FG;
+	        // printf("Starting again\n");
+	        kill(-(job->pid), SIGCONT);
+
+	        // Got to waitfg where we put our process back to the shell front
+	        waitfg(job->pid);
+	    }
+	}
+	*/
 	return;
 }
 
@@ -455,10 +467,13 @@ void waitfg(pid_t pid)
 	//int status;
 	// Here we wait for our foreground program to return
 	// while ((pid = waitpid(-1, &status, 0)) > 0 )
-	while ((pid = waitpid(-1, NULL, 0)) > 0 )
+	struct job_t *job;
+	job = getjobpid(jobs, pid);
+	while (job->state == FG)
 	{
 		//deletejob(struct job_t *jobs, pid_t pid)
-		deletejob(jobs, pid);
+		//deletejob(jobs, pid);
+		sleep(1);
 		//printf("Our child is free\n");
 	}
 	return;
@@ -515,7 +530,8 @@ void sigchld_handler(int sig)
 		else if (WIFSTOPPED(status))
 		{
 			jobid->state = ST;
-			printf("Job [%d] (%d) stopped by signal %d", jobid->jid, pid, WSTOPSIG(status));
+			printf("Job [%d] (%d) stopped by signal %d\n", jobid->jid, pid, WSTOPSIG(status));
+			kill(-pid, SIGTSTP);
 			fflush(stdout);
 		}
 		// Just a normal exit so we just delete the job
