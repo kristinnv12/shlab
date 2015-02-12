@@ -438,24 +438,6 @@ void do_bgfg(char **argv)
 		}
 	}
 
-	/*if (!strcmp(argv[0], "fg"))
-	{
-	    // No the user has types fg and we put FG to the state of
-	    // the job. This must be done if the process is in background
-	    // or is stopped
-
-	    if(state == ST || state == BG)
-	    {
-
-	        job->state = FG;
-	        // printf("Starting again\n");
-	        kill(-(job->pid), SIGCONT);
-
-	        // Got to waitfg where we put our process back to the shell front
-	        waitfg(job->pid);
-	    }
-	}
-	*/
 	return;
 }
 
@@ -523,14 +505,14 @@ void sigchld_handler(int sig)
 
 		if (WIFSIGNALED(status))
 		{
-			printf("Got WIFSIGNALED\n");
+			//printf("Got WIFSIGNALED\n");
 			fflush(stdout);
 			deletejob(jobs, pid);
 		}
 		else if (WIFSTOPPED(status))
 		{
+			//printf("Got WIFSTOPPED\n");
 			jobid->state = ST;
-			//kill(jobid->pid, SIGTSTP);
 			printf("Job [%d] (%d) stopped by signal %d\n", jobid->jid, pid, WSTOPSIG(status));
 			fflush(stdout);
 		}
