@@ -241,6 +241,7 @@ void eval(char *cmdline)
 			{
 				// Our command doesn't exist, display it
 				printf("%s: Command not found\n", argv[0]);
+				fflush(stdout);
 
 				// We close shell process since our forked process
 				// isn't the right command
@@ -396,6 +397,7 @@ void do_bgfg(char **argv)
 	if (argv[1] == NULL)
 	{
 		printf("%s command requires PID or %%jobid argument\n", argv[0]);
+		fflush(stdout);
 		return;
 	}
 
@@ -403,16 +405,21 @@ void do_bgfg(char **argv)
 	if (argv[1][0] != '%')
 	{
 		pid = strtol(argv[1], &endptr, 10); // Get pid
-		jid = pid2jid(pid);
+		jid = pid2jid(pid); // Store job based on pid
 
+		// If we have the right inðut but not available processes
+		// we display error
 		if (jid == 0 && endptr[0] == 0)
 		{
 			printf("(%d): No such process\n", pid);
+			fflush(stdout);
 			return;
 		}
+		// We got the wrong input
 		else
 		{
 			printf("%s: argument must be a PID or %%jobid\n", argv[0]);
+			fflush(stdout);
 			return;
 		}
 
@@ -426,17 +433,21 @@ void do_bgfg(char **argv)
 		jid = strtol(++argv[1], &endptr, 10);
 		job = getjobjid(jobs, jid);
 
+		// We got the wrong input
 		if (endptr[0] != 0)
 		{
 			printf("%s: argument must be a PID or %%jobid\n", argv[0]);
+			fflush(stdout);
 			return;
 		}
 
 	}
 
+	// If we did put in the wrong pid or jid we display error about it.
 	if ((job = getjobjid(jobs, jid)) == NULL)
 	{
 		printf("%%%d: No such job\n", jid);
+		fflush(stdout);
 		return;
 	}
 	// Save state here so we do the forbidden DRY
@@ -444,17 +455,23 @@ void do_bgfg(char **argv)
 
 	if (state == ST || state == BG)
 	{
+		// Send the process SIGCONT to make it continue running
 		kill(-(job->pid), SIGCONT);
+
+		// Now put it in defined state
 		if (!strcmp(argv[0], "fg"))
 		{
 			job->state = FG;
+			// Because we chose FG we wait for it to end
 			waitfg(job->pid);
 			return;
 		}
 		else
 		{
+			// Set the process state to BG and continue
 			job->state = BG;
 			printf("[%d] (%d) %s", job->jid, job->pid, job->cmdline);
+			fflush(stdout);
 		}
 	}
 
@@ -466,17 +483,14 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid)
 {
-	//int status;
-	// Here we wait for our foreground program to return
-	// while ((pid = waitpid(-1, &status, 0)) > 0 )
 	struct job_t *job;
-	job = getjobpid(jobs, pid);
+
+	job = getjobpid(jobs, pid); // Return job struct
+
+	// Here we wait for the program to end
 	while (job->state == FG)
 	{
-		//deletejob(struct job_t *jobs, pid_t pid)
-		//deletejob(jobs, pid);
-		sleep(1);
-		//printf("Our child is free\n");
+		sleep(1); // wait one second
 	}
 	return;
 }
@@ -518,29 +532,30 @@ void sigchld_handler(int sig)
 	    to stop. This status is only deﬁned if WIFSTOPPED(status) returned true. <- ekki athuga
 	 */
 
-
 	while ((pid = waitpid(-1, &status, WUNTRACED | WNOHANG)) > 0)
 	{
-		jobid = getjobpid(jobs, pid);
+		jobid = getjobpid(jobs, pid); // Return job struct
 
+		// If user hits ctrl+c or the process terminates suddenly
+		// we should print it out and delete the job
 		if (WIFSIGNALED(status))
 		{
 			printf("Job [%d] (%d) terminated by signal %d\n", jobid->jid, pid, WTERMSIG(status));
 			fflush(stdout);
-			deletejob(jobs, pid);
+			deletejob(jobs, pid); // Remove job from the jobs list
 		}
+		// If user hits ctrl+z or the process gets SIGTSTP
+		// we but it in ST state and print out info.
 		else if (WIFSTOPPED(status))
 		{
-			//printf("Got WIFSTOPPED\n");
-			jobid->state = ST;
+			jobid->state = ST; // Put it in ST (stop) state
 			printf("Job [%d] (%d) stopped by signal %d\n", jobid->jid, pid, WSTOPSIG(status));
 			fflush(stdout);
 		}
-		// Just a normal exit so we just delete the job
+		// Just a normal exit or not implemented so we just delete the job
 		else
 		{
-			//fflush(stdout);
-			deletejob(jobs, pid);
+			deletejob(jobs, pid); // Remove job from the jobs list
 		}
 	}
 
@@ -555,18 +570,14 @@ void sigchld_handler(int sig)
 void sigint_handler(int sig)
 {
 	int pid;
-	//int jobid;
 
-	pid = fgpid(jobs);      // Get foreground pid
-	//jobid = pid2jid(pid);   // Get job id based on pid
+	pid = fgpid(jobs); // Get foreground pid
 
 	// fgpid() returns 0 if we have no foreground job
 	// so this won't run if we get 0.
 	if (pid != 0)
 	{
 		// Kill pid and its group process using SIGINT.
-		// kill() returns 0 if it successes
-		//printf("Job [%d] (%d) terminated by signal %d\n", jobid, pid, SIGINT);
 		kill(-pid, SIGINT);
 	}
 
@@ -582,13 +593,14 @@ void sigtstp_handler(int sig)
 {
 
 	int pid;
-	//int jobid;
 
-	pid = fgpid(jobs);      // Get foreground pid
-	//jobid = pid2jid(pid);   // Get job id based on pid
+	pid = fgpid(jobs); // Get foreground pid
 
+	// fgpid() returns 0 if we have no foreground job
+	// so this won't run if we get 0.
 	if (pid != 0)
 	{
+		// Kill pid and its group process using SIGINT.
 		kill(-pid, SIGTSTP);
 	}
 
