@@ -253,18 +253,24 @@ void eval(char *cmdline)
 			// Add the process to a job list.
 			if (addjob(jobs, pid, BG, cmdline))
 			{
+				// Now unblock so we can do deletejob()
 				sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
+				// Print out the job id and process id and command line input
 				printf("[%d] %d %s", pid2jid(pid), pid, cmdline);
 				fflush(stdout);
 			}
-			//printf("We run in background\n");
 		}
 		else
 		{
 
 			if (addjob(jobs, pid, FG, cmdline))
 			{
+				// Now unblock so we can do deletejob()
 				sigprocmask(SIG_UNBLOCK, &mask, NULL);
+
+				// Go to waitfg where we run our waiting loop
+				// for the process to finish
 				waitfg(pid);
 			}
 		}
