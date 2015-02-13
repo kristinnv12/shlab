@@ -356,10 +356,22 @@ int parseline(const char *cmdline, char **argv)
  */
 int builtin_cmd(char **argv)
 {
+	int i;
 	// Quit needes to check if we have some jobs in the background
 	if (!strcmp(argv[0], "quit"))       //check for built in cmd quit
 	{
-		//kill(jobs.pid, SIGKILL);
+		if (sizeof(jobs) > 0)
+		{
+			for (i = 0; i < MAXJOBS; i++)
+			{
+				if (jobs[i].pid != 0)
+				{
+					kill(-(jobs[i].pid), SIGTERM);
+				}
+			}
+		}
+
+		clearjob(jobs);
 		exit(0);
 	}
 	else if (!strcmp(argv[0], "jobs"))  // lists all background jobs
