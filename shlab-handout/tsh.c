@@ -360,6 +360,8 @@ int builtin_cmd(char **argv)
 	// Quit needes to check if we have some jobs in the background
 	if (!strcmp(argv[0], "quit"))       //check for built in cmd quit
 	{
+		// When the shell terminates it should terminate all it child process
+		// So we get all the process ids from the job list and kill it with SIGTERM.
 		if (sizeof(jobs) > 0)
 		{
 			for (i = 0; i < MAXJOBS; i++)
