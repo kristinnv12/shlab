@@ -512,7 +512,7 @@ void sigchld_handler(int sig)
 
 		if (WIFSIGNALED(status))
 		{
-			//printf("Got WIFSIGNALED\n");
+			printf("Job [%d] (%d) terminated by signal %d\n", jobid->jid, pid, WTERMSIG(status));
 			fflush(stdout);
 			deletejob(jobs, pid);
 		}
@@ -526,7 +526,6 @@ void sigchld_handler(int sig)
 		// Just a normal exit so we just delete the job
 		else
 		{
-			//printf("Got else\n");
 			//fflush(stdout);
 			deletejob(jobs, pid);
 		}
@@ -543,10 +542,10 @@ void sigchld_handler(int sig)
 void sigint_handler(int sig)
 {
 	int pid;
-	int jobid;
+	//int jobid;
 
 	pid = fgpid(jobs);      // Get foreground pid
-	jobid = pid2jid(pid);   // Get job id based on pid
+	//jobid = pid2jid(pid);   // Get job id based on pid
 
 	// fgpid() returns 0 if we have no foreground job
 	// so this won't run if we get 0.
@@ -554,10 +553,8 @@ void sigint_handler(int sig)
 	{
 		// Kill pid and its group process using SIGINT.
 		// kill() returns 0 if it successes
-		if (kill(-pid, SIGINT) == 0)
-		{
-			printf("Job [%d] (%d) terminated by signal %d\n", jobid, pid, SIGINT);
-		}
+		//printf("Job [%d] (%d) terminated by signal %d\n", jobid, pid, SIGINT);
+		kill(-pid, SIGINT);
 	}
 
 	return;
