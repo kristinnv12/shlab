@@ -215,6 +215,7 @@ void eval(char *cmdline)
 		sigprocmask(SIG_BLOCK, &mask, NULL);
 
 
+		// Create a new child process with fork()
 		pid = fork();
 
 		// fork() gives -1 if error occur
@@ -263,7 +264,7 @@ void eval(char *cmdline)
 		}
 		else
 		{
-
+			// Add the process to a job list.
 			if (addjob(jobs, pid, FG, cmdline))
 			{
 				// Now unblock so we can do deletejob()
@@ -368,6 +369,7 @@ int builtin_cmd(char **argv)
 	}
 	else if (!strcmp(argv[0], "fg") || !strcmp(argv[0], "bg") )
 	{
+		// If our built in command is fg or bg we go straight to do_bgfg()
 		do_bgfg(argv);
 		return 1;
 	}
@@ -381,15 +383,14 @@ int builtin_cmd(char **argv)
 void do_bgfg(char **argv)
 {
 
-	// * Athuga fyrst hvort um fg eða bg er að ræða
-	// * Athuga hvort þetta sé jid eða pid. JID er með % á undan tölunni
-	// *
-	//
-	//int pid;
-	int jid, pid;
+	int jid; // JID var
+	int pid; // PID var
 
+	// This helps us to know if strtol() gives us the right answer
+	// that is if it was a number
 	char *endptr;
-	struct job_t *job;
+
+	struct job_t *job; // Store job item
 
 	// Lets do nothing if argument after fg/bg is none
 	if (argv[1] == NULL)
@@ -401,7 +402,7 @@ void do_bgfg(char **argv)
 	// Check if user entered pid
 	if (argv[1][0] != '%')
 	{
-		pid = strtol(argv[1], &endptr, 10);
+		pid = strtol(argv[1], &endptr, 10); // Get pid
 		jid = pid2jid(pid);
 
 		if (jid == 0 && endptr[0] == 0)
@@ -424,6 +425,12 @@ void do_bgfg(char **argv)
 		// We add ++argv[1] to go right after %
 		jid = strtol(++argv[1], &endptr, 10);
 		job = getjobjid(jobs, jid);
+
+		if (endptr[0] != 0)
+		{
+			printf("%s: argument must be a PID or %%jobid\n", argv[0]);
+			return;
+		}
 
 	}
 
